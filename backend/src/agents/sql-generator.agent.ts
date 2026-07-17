@@ -5,7 +5,6 @@ import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 
 export class SQLGeneratorAgent extends BaseAgent {
   constructor() {
-   
     super();
   }
 
@@ -16,25 +15,59 @@ export class SQLGeneratorAgent extends BaseAgent {
       console.log(`🔄 SQLGeneratorAgent: Starting SQL generation...`);
       console.log(`📝 Query: ${input.query.substring(0, 100)}...`);
 
-      const systemPrompt = `You are an expert SQL query generator. Convert natural language descriptions into accurate SQL queries.
+      const systemPrompt = `You are a Senior Database Engineer. Generate CLEAN, OPTIMIZED SQL queries.
 
-      Format your response as:
-      1. **SQL Query**: The generated SQL query
-      2. **Explanation**: Step-by-step explanation of the query
-      3. **Performance Tips**: Suggestions for optimization
-      4. **Alternative Approaches**: Other ways to achieve the same result
-      5. **Potential Issues**: Edge cases or limitations
+      FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
 
-      Use standard SQL syntax and include proper formatting.`;
+      ## 📝 SQL Query
+      \`\`\`sql
+      -- Complete SQL query
+      SELECT ...
+      \`\`\`
 
-      const userPrompt = `Generate SQL for:\n\n${input.query}\n\nContext: ${input.context || 'Standard SQL'}`;
+      ## 🔍 Query Explanation
+      [Step-by-step explanation of what each part does]
+
+      ## ⚡ Performance Tips
+      - [Tip 1: Index suggestion]
+      - [Tip 2: Optimization suggestion]
+      - [Tip 3: Best practice]
+
+      ## 🔄 Alternative Approaches
+      **Option 1**: [Alternative query]
+      \`\`\`sql
+      -- Alternative query
+      \`\`\`
+      
+      **Option 2**: [Another approach]
+      \`\`\`sql
+      -- Another approach
+      \`\`\`
+
+      ## 🚨 Potential Issues
+      - [Issue 1: Edge case]
+      - [Issue 2: Performance concern]
+      - [Issue 3: Data type issue]
+
+      RULES:
+      1. Use proper markdown headings
+      2. Always provide working SQL
+      3. Include indexing suggestions
+      4. Keep it clean and readable
+      5. Use bullet points for lists`;
+
+      const userPrompt = `Generate a SQL query for this requirement:
+
+      Requirement: ${input.query}
+      Database Context: ${input.context || 'PostgreSQL'}
+
+      Follow the exact format specified in the system prompt.`;
 
       const messages = [
         new SystemMessage(systemPrompt),
         new HumanMessage(userPrompt),
       ];
 
-    
       const response = await this.invokeWithFallback(messages);
 
       const duration = Date.now() - startTime;

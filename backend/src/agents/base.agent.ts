@@ -51,44 +51,44 @@ export abstract class BaseAgent {
    * Uses performance tracking to try best models first
    */
   protected async invokeWithFallback(messages: any[]): Promise<any> {
-    // Get models ordered by performance (best first)
-    const orderedModels = modelTracker.getOrderedModels();
-    
-    console.log(`🔄 Will try ${orderedModels.length} models in order...`);
-    
-    let lastError: Error | null = null;
+  const orderedModels = modelTracker.getOrderedModels();
+  
+  console.log(`🔄 Will try ${orderedModels.length} models in order...`);
+  
+  let lastError: Error | null = null;
 
-    for (const modelName of orderedModels) {
-      try {
-        console.log(`⏳ Trying model: ${modelName}...`);
-        const startTime = Date.now();
-        
-        const model = this.createModel(modelName);
-        const response = await model.invoke(messages);
-        
-        const duration = Date.now() - startTime;
-        
-        // Record success
-        modelTracker.recordSuccess(modelName, duration);
-        
-        // Update to successful model
-        this.modelName = modelName;
-        console.log(`✅ Success with model: ${modelName} (${duration}ms)`);
-        
-        return response;
-        
-      } catch (error: any) {
-        console.warn(`⚠️ Model ${modelName} failed:`, error.message || error);
-        modelTracker.recordFailure(modelName);
-        lastError = error;
-      }
+  for (const modelName of orderedModels) {
+    try {
+      console.log(`⏳ Trying model: ${modelName}...`);
+      const startTime = Date.now();
+      
+      const model = this.createModel(modelName);
+      
+      // ✅ Add timeout to each model call
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error(`Model ${modelName} timeout`)), MODEL_CONFIG.settings.timeout);
+      });
+      
+      const invokePromise = model.invoke(messages);
+      const response = await Promise.race([invokePromise, timeoutPromise]);
+      
+      const duration = Date.now() - startTime;
+      
+      modelTracker.recordSuccess(modelName, duration);
+      this.modelName = modelName;
+      console.log(`✅ Success with model: ${modelName} (${duration}ms)`);
+      
+      return response;
+      
+    } catch (error: any) {
+      console.warn(`⚠️ Model ${modelName} failed:`, error.message || error);
+      modelTracker.recordFailure(modelName);
+      lastError = error;
     }
-
-    // If all models fail, throw error with details
-    throw new Error(
-      `All models failed. Last error: ${lastError?.message || 'Unknown error'}`
-    );
   }
+
+  throw new Error(`All models failed. Last error: ${lastError?.message || 'Unknown error'}`);
+}
 
   protected async logAgentActivity(
     agentType: string,

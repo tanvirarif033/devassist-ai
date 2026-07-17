@@ -1,17 +1,17 @@
 export const MODEL_CONFIG = {
   models: [
-    'google/gemini-2.0-flash-exp:free',        
-    'mistralai/mistral-7b-instruct:free',     
-    'microsoft/phi-3-mini-128k-instruct:free',
-    'openai/gpt-oss-20b:free',                 
-    'meta-llama/llama-3.2-3b-instruct:free',   
-    'deepseek/deepseek-chat:free',            
+    'google/gemini-2.0-flash-exp:free',        // 🚀 Fastest (2-5s)
+    'mistralai/mistral-7b-instruct:free',      // 🚀 Fast (5-10s)
+    'microsoft/phi-3-mini-128k-instruct:free', // 🚀 Fast (5-10s)
+    'openai/gpt-oss-20b:free',                 // ⚡ Medium (10-20s)
+    'meta-llama/llama-3.2-3b-instruct:free',   // 🐢 Slow (20-40s)
+    'deepseek/deepseek-chat:free',             // 🐢 Slow (30-60s)
   ],
   
   settings: {
     temperature: 0.3,
-    maxTokens: 500,      
-    timeout: 15000,      
+    maxTokens: 300,      // ✅ Reduced for speed
+    timeout: 25000,      // ✅ 25 second timeout
   },
 };
 export interface ModelPerformance {

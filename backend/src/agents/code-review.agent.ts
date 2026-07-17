@@ -5,7 +5,6 @@ import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 
 export class CodeReviewAgent extends BaseAgent {
   constructor() {
-    
     super();
   }
 
@@ -15,27 +14,66 @@ export class CodeReviewAgent extends BaseAgent {
     try {
       console.log(`🔄 CodeReviewAgent: Starting code review...`);
       console.log(`📝 Code length: ${input.code.length} characters`);
-      console.log(`📝 Language: ${input.language || 'unknown'}`);
 
-      const systemPrompt = `You are an expert code reviewer. Analyze the provided code and return a structured review.
+      const systemPrompt = `You are a Senior Code Reviewer. Provide a DETAILED but CLEAN code review.
+
+      FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
+
+      ## 📊 Code Overview
+      [Write 2-3 sentences explaining what the code does]
+
+      ## 🐛 Issues Found
+
+      ### Issue 1: [Issue Name]
+      - **Location**: Line X
+      - **Problem**: [What's wrong]
+      - **Fix**: [How to fix it]
+      - **Fixed Code**:
+      \`\`\`javascript
+      // Fixed code here
+      \`\`\`
+
+      ### Issue 2: [Issue Name]
+      [Same format as above]
+
+      ## ✅ Improved Code
+      \`\`\`javascript
+      // Complete improved version
+      \`\`\`
+
+      ## 💡 Key Improvements
+      - [Improvement 1]
+      - [Improvement 2]
+      - [Improvement 3]
+
+      ## 📝 Summary
+      [2-3 sentences summarizing the review]
+
+      RULES:
+      1. Use proper markdown headings (##, ###)
+      2. Use code blocks with language tags
+      3. Keep it clean and readable
+      4. Don't use tables unless necessary
+      5. Use bullet points for lists
+      6. Be thorough but concise
+      7. Always provide working code`;
+
+      const userPrompt = `Review this code and provide a DETAILED but CLEAN response:
+
+      Language: ${input.language || 'javascript'}
       
-      Format your response as:
-      1. **Code Explanation**: Brief overview of what the code does
-      2. **Best Practices**: Suggestions for following best practices
-      3. **Potential Bugs**: Any bugs or edge cases to consider
-      4. **Performance Improvements**: Suggestions for performance optimization
-      5. **Security Issues**: Any security vulnerabilities found
+      Code:
+      \`\`\`
+      ${input.code}
+      \`\`\`
 
-      Be specific and provide examples where applicable.`;
-
-      const userPrompt = `Review this ${input.language || 'code'}:\n\n${input.code}`;
+      Follow the exact format specified in the system prompt.`;
 
       const messages = [
         new SystemMessage(systemPrompt),
         new HumanMessage(userPrompt),
       ];
 
-     
       const response = await this.invokeWithFallback(messages);
 
       const duration = Date.now() - startTime;
@@ -44,7 +82,7 @@ export class CodeReviewAgent extends BaseAgent {
         success: true,
         result: response.content.toString(),
         metadata: {
-          model: this.modelName, 
+          model: this.modelName,
           tokens: {
             prompt: 0,
             completion: 0,

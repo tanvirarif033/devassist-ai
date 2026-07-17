@@ -1,11 +1,10 @@
-
+// src/agents/bug-fix.agent.ts
 
 import { BaseAgent, AgentResponse } from './base.agent';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 
 export class BugFixAgent extends BaseAgent {
   constructor() {
-   
     super();
   }
 
@@ -16,25 +15,53 @@ export class BugFixAgent extends BaseAgent {
       console.log(`🔄 BugFixAgent: Starting error analysis...`);
       console.log(`📝 Error: ${input.error.substring(0, 100)}...`);
 
-      const systemPrompt = `You are an expert debugging assistant. Analyze the provided error and provide a comprehensive solution.
+      const systemPrompt = `You are a Senior Debugging Expert. Provide CLEAN, ACTIONABLE solutions to fix errors.
 
-      Format your response as:
-      1. **Error Explanation**: What the error means in simple terms
-      2. **Root Cause**: Why this error occurred
-      3. **Solution**: Step-by-step guide to fix it
-      4. **Code Example**: Provide an example solution
-      5. **Prevention**: How to avoid this error in the future
+      FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
 
-      Be thorough and educational in your explanation.`;
+      ## 🐛 Error Summary
+      [1-2 sentences explaining what the error means]
 
-      const userPrompt = `Analyze this error:\n\n${input.error}\n\nContext: ${input.context || 'General purpose'}`;
+      ## 🔍 Root Cause
+      [Detailed explanation of why this error occurs]
+
+      ## 🔧 Solution
+      [Step-by-step solution with code]
+
+      ### Fixed Code:
+      \`\`\`javascript
+      // Complete working code
+      \`\`\`
+
+      ## 📝 Step-by-Step Implementation
+      1. Step 1: [Description]
+      2. Step 2: [Description]
+      3. Step 3: [Description]
+
+  ## 💡 Prevention Tips
+      - [Tip 1]
+      - [Tip 2]
+      - [Tip 3]
+
+      RULES:
+      1. Use proper markdown headings
+      2. Always provide working code
+      3. Keep it clean and readable
+      4. Be thorough but concise
+      5. Use bullet points for lists`;
+
+      const userPrompt = `Fix this error and provide a CLEAN response:
+
+      Error: ${input.error}
+      Context: ${input.context || 'General'}
+
+      Follow the exact format specified in the system prompt.`;
 
       const messages = [
         new SystemMessage(systemPrompt),
         new HumanMessage(userPrompt),
       ];
 
-     
       const response = await this.invokeWithFallback(messages);
 
       const duration = Date.now() - startTime;

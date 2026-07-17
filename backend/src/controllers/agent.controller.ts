@@ -8,6 +8,8 @@ export class AgentController {
     try {
       const { code, language } = req.body;
       
+      console.log(`📝 Code Review Request:`, { codeLength: code?.length, language });
+      
       if (!code) {
         return res.status(400).json({ error: 'Code is required' });
       }
@@ -15,7 +17,7 @@ export class AgentController {
       const agent = AgentFactory.getAgent('code_review');
       const result = await agent.process({ code, language });
 
-      
+      // Save to chat history
       await prisma.chat.create({
         data: {
           userId: req.user!.id,
@@ -32,15 +34,20 @@ export class AgentController {
         success: result.success,
         data: result,
       });
-    } catch (error) {
-      console.error('Code Review error:', error);
-      res.status(500).json({ error: 'Internal server error' });
+    } catch (error: any) {
+      console.error('❌ Code Review error:', error);
+      res.status(500).json({ 
+        error: 'Internal server error',
+        details: error.message 
+      });
     }
   }
 
   static async bugFix(req: AuthRequest, res: Response) {
     try {
       const { error, context } = req.body;
+      
+      console.log(`🐛 Bug Fix Request:`, { error: error?.substring(0, 50), context });
       
       if (!error) {
         return res.status(400).json({ error: 'Error description is required' });
@@ -65,15 +72,20 @@ export class AgentController {
         success: result.success,
         data: result,
       });
-    } catch (error) {
-      console.error('Bug Fix error:', error);
-      res.status(500).json({ error: 'Internal server error' });
+    } catch (error: any) {
+      console.error('❌ Bug Fix error:', error);
+      res.status(500).json({ 
+        error: 'Internal server error',
+        details: error.message 
+      });
     }
   }
 
   static async sqlGenerator(req: AuthRequest, res: Response) {
     try {
       const { query, context } = req.body;
+      
+      console.log(`🗄️ SQL Generator Request:`, { query: query?.substring(0, 50), context });
       
       if (!query) {
         return res.status(400).json({ error: 'Query description is required' });
@@ -98,9 +110,12 @@ export class AgentController {
         success: result.success,
         data: result,
       });
-    } catch (error) {
-      console.error('SQL Generator error:', error);
-      res.status(500).json({ error: 'Internal server error' });
+    } catch (error: any) {
+      console.error('❌ SQL Generator error:', error);
+      res.status(500).json({ 
+        error: 'Internal server error',
+        details: error.message 
+      });
     }
   }
 }
