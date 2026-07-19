@@ -8,7 +8,7 @@
     "start": "node dist/server.js",
     "dev": "nodemon --watch src --ext ts --exec ts-node src/server.ts",
     "dev:full": "concurrently \"npm run dev\" \"cd ../frontend && npm run dev\"",
-      "postinstall": "prisma generate",
+    "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
