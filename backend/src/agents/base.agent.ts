@@ -1,9 +1,11 @@
-// src/agents/base.agent.ts
 
-import { ChatOpenAI } from '@langchain/openai';
+
+import { ChatMistralAI } from '@langchain/mistralai';
 import { config } from '../config';
 import { prisma } from '../database';
 import { MODEL_CONFIG, modelTracker } from './model.config';
+import { ContextService } from '../services/context.service';
+import { AgentType } from '../context/types';
 
 export interface AgentResponse {
   success: boolean;
@@ -20,75 +22,84 @@ export interface AgentResponse {
 }
 
 export abstract class BaseAgent {
-  protected model: ChatOpenAI;
+  protected model: ChatMistralAI;
   protected modelName: string;
-  private defaultModel: string;
+  protected defaultModel: string;
+  protected contextService: ContextService;
 
   constructor(modelName?: string) {
-    // If no model provided, use the first from config
     this.defaultModel = modelName || MODEL_CONFIG.models[0];
     this.modelName = this.defaultModel;
     this.model = this.createModel(this.modelName);
+    this.contextService = new ContextService();
     
     console.log(`🔧 Initialized agent with default model: ${this.modelName}`);
   }
 
-  protected createModel(modelName: string): ChatOpenAI {
-    return new ChatOpenAI({
-      apiKey: config.openRouter.apiKey,
-      configuration: {
-        baseURL: config.openRouter.baseUrl,
-      },
-      modelName: modelName,
+  protected createModel(modelName: string): ChatMistralAI {
+    // ✅ Fix: ChatMistralAI uses 'model' not 'modelName'
+    // ✅ Fix: timeout is not a direct parameter, we handle it differently
+    return new ChatMistralAI({
+      apiKey: config.mistral.apiKey,
+      model: modelName,  // Changed from 'modelName' to 'model'
       temperature: MODEL_CONFIG.settings.temperature,
       maxTokens: MODEL_CONFIG.settings.maxTokens,
-      timeout: MODEL_CONFIG.settings.timeout,
+      // ✅ timeout is handled through the request options, not here
     });
   }
 
-  /**
-   * Try multiple models with fallback
-   * Uses performance tracking to try best models first
-   */
   protected async invokeWithFallback(messages: any[]): Promise<any> {
-  const orderedModels = modelTracker.getOrderedModels();
-  
-  console.log(`🔄 Will try ${orderedModels.length} models in order...`);
-  
-  let lastError: Error | null = null;
+    const orderedModels = modelTracker.getOrderedModels();
+    
+    console.log(`🔄 Will try ${orderedModels.length} models in order...`);
+    
+    let lastError: Error | null = null;
 
-  for (const modelName of orderedModels) {
-    try {
-      console.log(`⏳ Trying model: ${modelName}...`);
-      const startTime = Date.now();
-      
-      const model = this.createModel(modelName);
-      
-      // ✅ Add timeout to each model call
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error(`Model ${modelName} timeout`)), MODEL_CONFIG.settings.timeout);
-      });
-      
-      const invokePromise = model.invoke(messages);
-      const response = await Promise.race([invokePromise, timeoutPromise]);
-      
-      const duration = Date.now() - startTime;
-      
-      modelTracker.recordSuccess(modelName, duration);
-      this.modelName = modelName;
-      console.log(`✅ Success with model: ${modelName} (${duration}ms)`);
-      
-      return response;
-      
-    } catch (error: any) {
-      console.warn(`⚠️ Model ${modelName} failed:`, error.message || error);
-      modelTracker.recordFailure(modelName);
-      lastError = error;
+    for (const modelName of orderedModels) {
+      try {
+        console.log(`⏳ Trying model: ${modelName}...`);
+        const startTime = Date.now();
+        
+        // ✅ Create model with timeout handled via AbortController
+        const model = this.createModel(modelName);
+        
+        // ✅ Handle timeout using AbortController
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+          controller.abort();
+        }, MODEL_CONFIG.settings.timeout);
+        
+        try {
+          const response = await model.invoke(messages, {
+            signal: controller.signal,
+          });
+          
+          clearTimeout(timeoutId);
+          
+          const duration = Date.now() - startTime;
+          
+          if (response && typeof response === 'object' && 'content' in response) {
+            modelTracker.recordSuccess(modelName, duration);
+            this.modelName = modelName;
+            console.log(`✅ Success with model: ${modelName} (${duration}ms)`);
+            return response;
+          } else {
+            throw new Error('Empty or invalid response from model');
+          }
+        } catch (error: any) {
+          clearTimeout(timeoutId);
+          throw error;
+        }
+        
+      } catch (error: any) {
+        console.warn(`⚠️ Model ${modelName} failed:`, error.message || error);
+        modelTracker.recordFailure(modelName);
+        lastError = error;
+      }
     }
-  }
 
-  throw new Error(`All models failed. Last error: ${lastError?.message || 'Unknown error'}`);
-}
+    throw new Error(`All models failed. Last error: ${lastError?.message || 'Unknown error'}`);
+  }
 
   protected async logAgentActivity(
     agentType: string,
@@ -113,5 +124,27 @@ export abstract class BaseAgent {
     }
   }
 
-  abstract process(input: any): Promise<AgentResponse>;
+  protected async processWithContext(
+    agentType: AgentType,
+    userPrompt: string,
+    userId: string,
+    chatId?: string,
+    additionalContext?: Record<string, any>
+  ): Promise<{ context: any; formattedPrompt: string }> {
+    console.log(`📦 Building context for ${agentType} agent...`);
+    
+    const context = await this.contextService.buildContext(
+      agentType,
+      userPrompt,
+      userId,
+      chatId,
+      additionalContext
+    );
+
+    const formattedPrompt = this.contextService.formatContextForPrompt(context);
+    
+    return { context, formattedPrompt };
+  }
+
+  abstract process(input: any, userId?: string, chatId?: string): Promise<AgentResponse>;
 }

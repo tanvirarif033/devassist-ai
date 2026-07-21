@@ -1,19 +1,20 @@
+
 export const MODEL_CONFIG = {
+  // Mistral models (from fastest to most capable)
   models: [
-    'google/gemini-2.0-flash-exp:free',        // 🚀 Fastest (2-5s)
-    'mistralai/mistral-7b-instruct:free',      // 🚀 Fast (5-10s)
-    'microsoft/phi-3-mini-128k-instruct:free', // 🚀 Fast (5-10s)
-    'openai/gpt-oss-20b:free',                 // ⚡ Medium (10-20s)
-    'meta-llama/llama-3.2-3b-instruct:free',   // 🐢 Slow (20-40s)
-    'deepseek/deepseek-chat:free',             // 🐢 Slow (30-60s)
+    'mistral-tiny',      // 🚀 Fastest, good for simple tasks
+    'mistral-small',     // ⚡ Fast, good balance
+    'mistral-medium',    // 🐢 Slower, more capable
+    'mistral-large',     // 🐢 Slowest, most capable
   ],
   
   settings: {
     temperature: 0.3,
-    maxTokens: 300,      // ✅ Reduced for speed
-    timeout: 25000,      // ✅ 25 second timeout
+    maxTokens: 500,
+    timeout: 30000,      // 30 seconds
   },
 };
+
 export interface ModelPerformance {
   modelName: string;
   successCount: number;
@@ -74,47 +75,30 @@ export class ModelPerformanceTracker {
     return ordered.length > 0 ? ordered[0] : MODEL_CONFIG.models[0];
   }
 
-  /**
-   * ✅ FIXED: Returns models ordered by performance
-   * - Models with performance data come first
-   * - Sorted by success rate (higher = better)
-   * - If no data, returns default order
-   */
   getOrderedModels(): string[] {
-    
     const models = [...MODEL_CONFIG.models];
-    
-    
     const hasData = models.some(model => this.performance.has(model));
     
-  
     if (!hasData) {
       console.log('📊 No performance data yet, using default model order');
       return models;
     }
     
-   
     return models.sort((a, b) => {
       const perfA = this.performance.get(a);
       const perfB = this.performance.get(b);
       
-      
       if (perfA && !perfB) return -1;
-      
-      
       if (!perfA && perfB) return 1;
       
-   
       if (perfA && perfB) {
         const scoreA = (this.getSuccessRate(a) * 100) - (perfA.avgDuration / 1000);
         const scoreB = (this.getSuccessRate(b) * 100) - (perfB.avgDuration / 1000);
         
-        
         if (scoreA !== scoreB) {
-          return scoreB - scoreA; 
+          return scoreB - scoreA;
         }
       }
-      
       
       return MODEL_CONFIG.models.indexOf(a) - MODEL_CONFIG.models.indexOf(b);
     });

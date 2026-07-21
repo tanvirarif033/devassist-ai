@@ -1,4 +1,4 @@
-// src/agents/bug-fix.agent.ts
+
 
 import { BaseAgent, AgentResponse } from './base.agent';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
@@ -8,12 +8,19 @@ export class BugFixAgent extends BaseAgent {
     super();
   }
 
-  async process(input: { error: string; context?: string }): Promise<AgentResponse> {
+  async process(input: { error: string; context?: string; userId?: string; chatId?: string }): Promise<AgentResponse> {
     const startTime = Date.now();
 
     try {
-      console.log(`🔄 BugFixAgent: Starting error analysis...`);
-      console.log(`📝 Error: ${input.error.substring(0, 100)}...`);
+      const { context, formattedPrompt } = await this.processWithContext(
+        'bug_fix',
+        input.error,
+        input.userId || 'system',
+        input.chatId
+      );
+
+      console.log(`🔄 BugFixAgent: Starting error analysis with context...`);
+      console.log(`📦 Context built with error: ${context.error?.message?.substring(0, 50) || 'No error extracted'}`);
 
       const systemPrompt = `You are a Senior Debugging Expert. Provide CLEAN, ACTIONABLE solutions to fix errors.
 
@@ -38,7 +45,7 @@ export class BugFixAgent extends BaseAgent {
       2. Step 2: [Description]
       3. Step 3: [Description]
 
-  ## 💡 Prevention Tips
+      ## 💡 Prevention Tips
       - [Tip 1]
       - [Tip 2]
       - [Tip 3]
@@ -50,16 +57,18 @@ export class BugFixAgent extends BaseAgent {
       4. Be thorough but concise
       5. Use bullet points for lists`;
 
-      const userPrompt = `Fix this error and provide a CLEAN response:
+      const userMessage = `Fix this error and provide a CLEAN response:
 
       Error: ${input.error}
       Context: ${input.context || 'General'}
+
+      ${formattedPrompt}
 
       Follow the exact format specified in the system prompt.`;
 
       const messages = [
         new SystemMessage(systemPrompt),
-        new HumanMessage(userPrompt),
+        new HumanMessage(userMessage),
       ];
 
       const response = await this.invokeWithFallback(messages);
@@ -82,7 +91,7 @@ export class BugFixAgent extends BaseAgent {
 
       await this.logAgentActivity(
         'bug_fix',
-        input,
+        { input, context },
         response.content,
         result.metadata.tokens,
         duration

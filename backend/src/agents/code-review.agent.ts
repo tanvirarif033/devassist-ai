@@ -1,4 +1,4 @@
-// src/agents/code-review.agent.ts
+
 
 import { BaseAgent, AgentResponse } from './base.agent';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
@@ -8,12 +8,20 @@ export class CodeReviewAgent extends BaseAgent {
     super();
   }
 
-  async process(input: { code: string; language?: string }): Promise<AgentResponse> {
+  async process(input: { code?: string; language?: string; userId?: string; chatId?: string }): Promise<AgentResponse> {
     const startTime = Date.now();
 
     try {
-      console.log(`🔄 CodeReviewAgent: Starting code review...`);
-      console.log(`📝 Code length: ${input.code.length} characters`);
+      const userPrompt = input.code || 'Please review the code in the context.';
+      const { context, formattedPrompt } = await this.processWithContext(
+        'code_review',
+        userPrompt,
+        input.userId || 'system',
+        input.chatId
+      );
+
+      console.log(`🔄 CodeReviewAgent: Starting code review with context...`);
+      console.log(`📦 Context built with ${context.files?.length || 0} files`);
 
       const systemPrompt = `You are a Senior Code Reviewer. Provide a DETAILED but CLEAN code review.
 
@@ -58,20 +66,17 @@ export class CodeReviewAgent extends BaseAgent {
       6. Be thorough but concise
       7. Always provide working code`;
 
-      const userPrompt = `Review this code and provide a DETAILED but CLEAN response:
+      const userMessage = `Review this code and provide a DETAILED but CLEAN response:
 
-      Language: ${input.language || 'javascript'}
+      Language: ${input.language || context.project.language || 'javascript'}
       
-      Code:
-      \`\`\`
-      ${input.code}
-      \`\`\`
+      ${formattedPrompt}
 
       Follow the exact format specified in the system prompt.`;
 
       const messages = [
         new SystemMessage(systemPrompt),
-        new HumanMessage(userPrompt),
+        new HumanMessage(userMessage),
       ];
 
       const response = await this.invokeWithFallback(messages);
@@ -94,7 +99,7 @@ export class CodeReviewAgent extends BaseAgent {
 
       await this.logAgentActivity(
         'code_review',
-        input,
+        { input, context },
         response.content,
         result.metadata.tokens,
         duration

@@ -1,3 +1,5 @@
+// src/types/index.ts
+
 export interface User {
   id: string;
   email: string;
@@ -17,6 +19,11 @@ export interface AuthResponse {
 export interface Message {
   role: 'user' | 'assistant';
   content: string;
+  metadata?: {
+    model?: string;
+    duration?: number;
+    context?: any ;
+  };
 }
 
 export interface Chat {
@@ -30,13 +37,29 @@ export interface Chat {
 
 export type AgentType = 'code_review' | 'bug_fix' | 'sql_generator';
 
-export interface AgentRequest {
+// ✅ Enhanced Agent Request types for context engineering
+export interface CodeReviewRequest {
   code?: string;
-  error?: string;
-  query?: string;
-  context?: string;
   language?: string;
+  filePath?: string;
+  context?: string;
 }
+
+export interface BugFixRequest {
+  error: string;
+  context?: string;
+  filePath?: string;
+  stackTrace?: string;
+}
+
+export interface SQLGeneratorRequest {
+  query: string;
+  context?: string;
+  database?: string;
+  tableNames?: string[];
+}
+
+export type AgentRequest = CodeReviewRequest | BugFixRequest | SQLGeneratorRequest;
 
 export interface AgentResponse {
   success: boolean;
@@ -46,6 +69,52 @@ export interface AgentResponse {
     metadata: {
       model: string;
       duration: number;
+      tokens?: {
+        prompt: number;
+        completion: number;
+        total: number;
+      };
     };
+    chatId?: string;
   };
+}
+
+// ✅ New types for bulk operations
+export interface BulkCodeReviewRequest {
+  files: {
+    path: string;
+    content: string;
+    language?: string;
+  }[];
+  language?: string;
+}
+
+export interface BulkCodeReviewResponse {
+  success: boolean;
+  data: {
+    results: {
+      file: string;
+      success: boolean;
+      chatId?: string;
+      error?: string;
+    }[];
+    totalFiles: number;
+    successful: number;
+    failed: number;
+    chatIds: string[];
+  };
+}
+
+// ✅ Performance stats types
+export interface PerformanceStats {
+  agentType: string;
+  total: number;
+  success: number;
+  successRate: number;
+}
+
+export interface AgentStatus {
+  availableAgents: AgentType[];
+  activeAgents: AgentType[];
+  agentCount: number;
 }

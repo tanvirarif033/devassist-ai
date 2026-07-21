@@ -1,3 +1,5 @@
+// src/api/client.ts
+
 import axios, { AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -9,7 +11,7 @@ export const apiClient: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 35000,
+  timeout: 45000, // ✅ Increased timeout for context processing
 });
 
 // Request interceptor

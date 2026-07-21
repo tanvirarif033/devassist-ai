@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+// src/pages/ChatPage.tsx
+
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { chatApi } from '../api/chat.api';
 import type { Chat, Message } from '../types';
@@ -31,20 +33,19 @@ const ChatPage: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [modelInfo, setModelInfo] = useState<string | null>(null);
+  const [isLoadingChat, setIsLoadingChat] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (id) {
-      loadChat(id);
-    }
-  }, [id]);
+  // ✅ Use useCallback to memoize the function
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const loadChat = async (chatId: string) => {
+  // ✅ Use useCallback to memoize loadChat
+  const loadChat = useCallback(async (chatId: string) => {
     try {
+      setIsLoadingChat(true);
       const chatData = await chatApi.getChat(chatId);
       setChat(chatData);
       setMessages(chatData.messages || []);
@@ -52,12 +53,22 @@ const ChatPage: React.FC = () => {
       const message = getErrorMessage(error);
       toast.error(message);
       navigate('/dashboard');
+    } finally {
+      setIsLoadingChat(false);
     }
-  };
+  }, [navigate]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  // ✅ Load chat when ID changes
+  useEffect(() => {
+    if (id) {
+      loadChat(id);
+    }
+  }, [id, loadChat]);
+
+  // ✅ Scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +78,7 @@ const ChatPage: React.FC = () => {
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setLoading(true);
+    setModelInfo(null);
 
     const toastId = toast.loading('Thinking — this can take up to 30 seconds.');
 
@@ -76,11 +88,17 @@ const ChatPage: React.FC = () => {
       toast.dismiss(toastId);
       toast.success('Response received.');
 
+      if (response.metadata?.model) {
+        setModelInfo(`Model: ${response.metadata.model} • ${response.metadata.duration}ms`);
+      }
+
       const assistantMessage: Message = {
         role: 'assistant',
         content: response.response || 'No response received',
+        metadata: response.metadata,
       };
       setMessages((prev) => [...prev, assistantMessage]);
+      
     } catch (error: unknown) {
       toast.dismiss(toastId);
       const message = getErrorMessage(error);
@@ -119,6 +137,18 @@ const ChatPage: React.FC = () => {
 
   const accent = accentFor(chat?.agentType);
 
+  // ✅ Show loading state while chat is being loaded
+  if (isLoadingChat) {
+    return (
+      <div className="h-screen bg-[#0B0E14] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#35D0B8] mx-auto"></div>
+          <p className="font-['JetBrains_Mono'] text-[#5B6472] mt-4 text-sm">Loading chat...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen bg-[#0B0E14] flex flex-col">
       <style>{FONT_IMPORT}</style>
@@ -144,6 +174,11 @@ const ChatPage: React.FC = () => {
               {chat.agentType.replace('_', ' ')}
             </span>
           )}
+          {modelInfo && (
+            <span className="font-['JetBrains_Mono'] text-[10px] text-[#5B6472] shrink-0 hidden sm:block">
+              {modelInfo}
+            </span>
+          )}
         </div>
         <button
           onClick={deleteChat}
@@ -165,7 +200,7 @@ const ChatPage: React.FC = () => {
                 Start a conversation with {chat?.agentType?.replace('_', ' ') || 'your agent'}
               </p>
               <p className="font-['JetBrains_Mono'] text-xs text-[#5B6472] mt-2">
-                // responses may take 10–30 seconds
+                // The agent has context awareness — files, errors, and project info
               </p>
             </div>
           )}
@@ -285,7 +320,7 @@ const ChatPage: React.FC = () => {
                     <span className="w-1.5 h-1.5 rounded-full animate-bounce [animation-delay:0.2s]" style={{ backgroundColor: accent }} />
                   </div>
                   <span className="font-['JetBrains_Mono'] text-xs text-[#5B6472]">
-                    {chat?.agentType?.replace('_', ' ') || 'agent'} is thinking...
+                    {chat?.agentType?.replace('_', ' ') || 'agent'} is thinking with context...
                   </span>
                 </div>
               </div>
@@ -304,7 +339,7 @@ const ChatPage: React.FC = () => {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Type your message..."
+              placeholder="Type your message... (include file paths or error details for context)"
               className="flex-1 bg-transparent outline-none font-['JetBrains_Mono'] text-sm text-[#E7E9EE] placeholder-[#4B5563] py-2.5"
               disabled={loading}
             />

@@ -1,4 +1,3 @@
-// src/agents/agent.factory.ts
 
 import { CodeReviewAgent } from './code-review.agent';
 import { BugFixAgent } from './bug-fix.agent';

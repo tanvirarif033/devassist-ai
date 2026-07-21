@@ -1,3 +1,5 @@
+// src/pages/Dashboard.tsx
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -47,21 +49,21 @@ const agents: {
   {
     type: 'code_review' as AgentType,
     title: 'Code Review',
-    description: 'Catch bugs, security issues, and style problems before they ship.',
+    description: 'Catch bugs, security issues, and style problems. Now with file context!',
     accent: 'teal',
     Icon: CodeIcon,
   },
   {
     type: 'bug_fix' as AgentType,
     title: 'Bug Fix',
-    description: 'Paste an error and get a step-by-step diagnosis and fix.',
+    description: 'Paste an error and get a step-by-step diagnosis with context.',
     accent: 'amber',
     Icon: BugIcon,
   },
   {
     type: 'sql_generator' as AgentType,
     title: 'SQL Generator',
-    description: 'Describe what you need in plain language, get the query.',
+    description: 'Describe what you need, get the query with schema awareness.',
     accent: 'blue',
     Icon: DbIcon,
   },
@@ -115,7 +117,7 @@ const Dashboard: React.FC = () => {
             Welcome back{user?.fullName ? `, ${user.fullName.split(' ')[0]}` : ''}
           </h1>
           <p className="font-['Inter'] text-[#9AA3B2] mt-1.5 text-sm sm:text-base">
-            Choose an agent to help with your next task.
+            Choose an agent to help with your next task. Context-aware responses powered by AI.
           </p>
         </div>
 
@@ -184,6 +186,7 @@ const Dashboard: React.FC = () => {
               <div>
                 {recentChats.map((chat) => {
                   const c = ACCENTS[accentFor(chat.agentType)];
+                  const messageCount = chat.messages?.length || 0;
                   return (
                     <div
                       key={chat.id}
@@ -203,7 +206,7 @@ const Dashboard: React.FC = () => {
                             {chat.title}
                           </p>
                           <p className="font-['JetBrains_Mono'] text-[11px] text-[#5B6472] mt-0.5">
-                            {new Date(chat.updatedAt).toLocaleString()}
+                            {new Date(chat.updatedAt).toLocaleString()} • {messageCount} messages
                           </p>
                         </div>
                       </div>

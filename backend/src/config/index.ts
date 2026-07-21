@@ -1,3 +1,4 @@
+
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
@@ -9,8 +10,9 @@ const envSchema = z.object({
   DATABASE_URL: z.string(),
   JWT_SECRET: z.string().min(32),
   JWT_EXPIRE: z.string().default('7d'),
-  OPENROUTER_API_KEY: z.string(),
-  OPENROUTER_BASE_URL: z.string().url().default('https://openrouter.ai/api/v1'),
+  MISTRAL_API_KEY: z.string(),
+  MISTRAL_BASE_URL: z.string().url().default('https://api.mistral.ai/v1'),
+  MISTRAL_MODEL: z.string().default('mistral-tiny'),
   RATE_LIMIT_WINDOW_MS: z.string().default('900000'),
   RATE_LIMIT_MAX_REQUESTS: z.string().default('100'),
 });
@@ -30,9 +32,10 @@ export const config = {
     secret: env.data.JWT_SECRET,
     expire: env.data.JWT_EXPIRE,
   },
-  openRouter: {
-    apiKey: env.data.OPENROUTER_API_KEY,
-    baseUrl: env.data.OPENROUTER_BASE_URL,
+  mistral: {
+    apiKey: env.data.MISTRAL_API_KEY,
+    baseUrl: env.data.MISTRAL_BASE_URL,
+    model: env.data.MISTRAL_MODEL,
   },
   rateLimit: {
     windowMs: parseInt(env.data.RATE_LIMIT_WINDOW_MS),

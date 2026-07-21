@@ -1,4 +1,4 @@
-// src/agents/sql-generator.agent.ts
+
 
 import { BaseAgent, AgentResponse } from './base.agent';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
@@ -8,12 +8,19 @@ export class SQLGeneratorAgent extends BaseAgent {
     super();
   }
 
-  async process(input: { query: string; context?: string }): Promise<AgentResponse> {
+  async process(input: { query: string; context?: string; userId?: string; chatId?: string }): Promise<AgentResponse> {
     const startTime = Date.now();
 
     try {
-      console.log(`🔄 SQLGeneratorAgent: Starting SQL generation...`);
-      console.log(`📝 Query: ${input.query.substring(0, 100)}...`);
+      const { context, formattedPrompt } = await this.processWithContext(
+        'sql_generator',
+        input.query,
+        input.userId || 'system',
+        input.chatId
+      );
+
+      console.log(`🔄 SQLGeneratorAgent: Starting SQL generation with context...`);
+      console.log(`📦 Context includes database schema: ${context.databaseSchema ? 'Yes' : 'No'}`);
 
       const systemPrompt = `You are a Senior Database Engineer. Generate CLEAN, OPTIMIZED SQL queries.
 
@@ -56,16 +63,18 @@ export class SQLGeneratorAgent extends BaseAgent {
       4. Keep it clean and readable
       5. Use bullet points for lists`;
 
-      const userPrompt = `Generate a SQL query for this requirement:
+      const userMessage = `Generate a SQL query for this requirement:
 
       Requirement: ${input.query}
-      Database Context: ${input.context || 'PostgreSQL'}
+      Database Context: ${input.context || context.project.database || 'PostgreSQL'}
+
+      ${formattedPrompt}
 
       Follow the exact format specified in the system prompt.`;
 
       const messages = [
         new SystemMessage(systemPrompt),
-        new HumanMessage(userPrompt),
+        new HumanMessage(userMessage),
       ];
 
       const response = await this.invokeWithFallback(messages);
@@ -88,7 +97,7 @@ export class SQLGeneratorAgent extends BaseAgent {
 
       await this.logAgentActivity(
         'sql_generator',
-        input,
+        { input, context },
         response.content,
         result.metadata.tokens,
         duration
