@@ -19,28 +19,63 @@ jobs:
           script: |
             set -e
 
-            echo "========== Updating Project =========="
+            echo "===================================="
+            echo "Starting Deployment..."
+            echo "===================================="
+
+            # Go to project
             cd ~/devassist-ai
+
+            echo "Updating repository..."
             git fetch origin
             git reset --hard origin/main
 
-            echo "========== Backend =========="
+            ####################################
+            # Backend
+            ####################################
+            echo "Building Backend..."
+
             cd backend
-            npm ci
+
+            npm install
+
             npm run build
+
             pm2 restart devassist-backend --update-env
 
-            echo "========== Frontend =========="
+            ####################################
+            # Frontend
+            ####################################
+            echo "Building Frontend..."
+
             cd ../frontend
-            npm ci
+
+            npm install
+
             npm run build
 
-            echo "========== Deploy Frontend =========="
+            ####################################
+            # Deploy React Build
+            ####################################
+            echo "Deploying Frontend..."
+
             sudo rm -rf /var/www/html/*
             sudo cp -r dist/* /var/www/html/
 
-            echo "========== Reload Nginx =========="
+            ####################################
+            # Reload Nginx
+            ####################################
+            echo "Reloading Nginx..."
+
             sudo nginx -t
+
             sudo systemctl reload nginx
 
-            echo "✅ Deployment Successful!"
+            ####################################
+            # Show PM2 Status
+            ####################################
+            pm2 status
+
+            echo "===================================="
+            echo "Deployment Completed Successfully!"
+            echo "===================================="
