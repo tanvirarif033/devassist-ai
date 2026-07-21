@@ -1,3 +1,5 @@
+// src/pages/LoginPage.tsx
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -26,8 +28,19 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     setFormError('');
 
+    // Validation
     if (!email || !password) {
-      setFormError('Enter your email and password to continue.');
+      setFormError('❌ Please enter your email and password.');
+      return;
+    }
+
+    if (password.length < 8) {
+      setFormError('❌ Password must be at least 8 characters long.');
+      return;
+    }
+
+    if (!email.includes('@') || !email.includes('.')) {
+      setFormError('❌ Please enter a valid email address.');
       return;
     }
 
@@ -35,12 +48,19 @@ const LoginPage: React.FC = () => {
 
     try {
       await login(email, password);
+      // Success - navigate to dashboard
       navigate('/dashboard');
     } catch (error: any) {
-      // Error handled in AuthContext
-      console.error('Login error:', error);
-    } finally {
+      // Error is already handled in AuthContext with toast
+      // But we also want to show it in the form
+      const errorMessage = error?.response?.data?.error || 
+                          error?.message || 
+                          'Invalid email or password. Please try again.';
+      setFormError(`❌ ${errorMessage}`);
       setLoading(false);
+    } finally {
+      // Only set loading to false if we're not navigating
+      // If navigation happens, the component will unmount
     }
   };
 
@@ -108,8 +128,13 @@ const LoginPage: React.FC = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@company.com"
-                  className="w-full bg-[#0B0E14] border border-[#262C38] rounded-md px-3.5 py-2.5 font-['JetBrains_Mono'] text-sm text-[#E7E9EE] placeholder-[#4B5563] outline-none transition-colors focus:border-[#35D0B8] focus:ring-1 focus:ring-[#35D0B8]/40"
+                  className={`w-full bg-[#0B0E14] border rounded-md px-3.5 py-2.5 font-['JetBrains_Mono'] text-sm text-[#E7E9EE] placeholder-[#4B5563] outline-none transition-colors focus:ring-1 ${
+                    formError && formError.includes('email') 
+                      ? 'border-[#F2665E] focus:border-[#F2665E] focus:ring-[#F2665E]/40' 
+                      : 'border-[#262C38] focus:border-[#35D0B8] focus:ring-[#35D0B8]/40'
+                  }`}
                   required
+                  autoComplete="email"
                 />
               </div>
 
@@ -119,6 +144,9 @@ const LoginPage: React.FC = () => {
                   className="block font-['JetBrains_Mono'] text-xs text-[#9AA3B2] mb-1.5"
                 >
                   <span className="text-[#5B6472]">$</span> password
+                  <span className="text-[#5B6472] ml-2 text-[10px]">
+                    (min 8 characters)
+                  </span>
                 </label>
                 <input
                   id="password"
@@ -126,15 +154,31 @@ const LoginPage: React.FC = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-[#0B0E14] border border-[#262C38] rounded-md px-3.5 py-2.5 font-['JetBrains_Mono'] text-sm text-[#E7E9EE] placeholder-[#4B5563] outline-none transition-colors focus:border-[#35D0B8] focus:ring-1 focus:ring-[#35D0B8]/40"
+                  className={`w-full bg-[#0B0E14] border rounded-md px-3.5 py-2.5 font-['JetBrains_Mono'] text-sm text-[#E7E9EE] placeholder-[#4B5563] outline-none transition-colors focus:ring-1 ${
+                    formError && formError.includes('password') 
+                      ? 'border-[#F2665E] focus:border-[#F2665E] focus:ring-[#F2665E]/40' 
+                      : 'border-[#262C38] focus:border-[#35D0B8] focus:ring-[#35D0B8]/40'
+                  }`}
                   required
+                  autoComplete="current-password"
                 />
+                {/* Password strength indicator */}
+                {password.length > 0 && password.length < 8 && (
+                  <p className="font-['JetBrains_Mono'] text-[11px] text-[#F5A623] mt-1.5">
+                    ⚠️ Password must be at least 8 characters
+                  </p>
+                )}
+                {password.length >= 8 && (
+                  <p className="font-['JetBrains_Mono'] text-[11px] text-[#35D0B8] mt-1.5">
+                    ✓ Password length is good
+                  </p>
+                )}
               </div>
 
               {formError && (
-                <p className="font-['JetBrains_Mono'] text-xs text-[#F2665E] border border-[#F2665E]/30 bg-[#F2665E]/10 rounded-md px-3 py-2">
+                <div className="font-['JetBrains_Mono'] text-xs text-[#F2665E] border border-[#F2665E]/30 bg-[#F2665E]/10 rounded-md px-3 py-2.5">
                   {formError}
-                </p>
+                </div>
               )}
 
               <button
