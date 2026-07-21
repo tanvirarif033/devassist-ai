@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import type { User } from '../types';
 import { authApi } from '../api/auth.api';
 import { getErrorMessage } from '../api/client';
-import { AxiosError } from 'axios';
+
 
 interface AuthContextType {
   user: User | null;
