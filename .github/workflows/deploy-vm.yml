@@ -20,10 +20,13 @@ jobs:
           script: |
             set -e
 
+            APP_URL="${{ secrets.APP_URL }}"
+
             echo "===================================="
             echo "Starting DevAssist AI Deployment..."
             echo "===================================="
 
+            echo ""
             echo "Deployment Time:"
             date
 
@@ -54,9 +57,11 @@ jobs:
             echo "Installing backend dependencies..."
             npm install
 
+            echo ""
             echo "Building backend..."
             npm run build
 
+            echo ""
             echo "Restarting backend..."
             pm2 restart devassist-backend --update-env
 
@@ -77,12 +82,10 @@ jobs:
             echo "Installing frontend dependencies..."
             npm install
 
+            echo ""
             echo "Building frontend..."
             npm run build
 
-            ####################################
-            # Deploy Frontend
-            ####################################
             echo ""
             echo "Deploying frontend..."
 
@@ -90,15 +93,14 @@ jobs:
             sudo cp -r dist/* /var/www/html/
 
             ####################################
-            # Reload Nginx
+            # Nginx
             ####################################
             echo ""
-            echo "Checking Nginx Configuration..."
+            echo "===================================="
+            echo "Reloading Nginx"
+            echo "===================================="
 
             sudo nginx -t
-
-            echo "Reloading Nginx..."
-
             sudo systemctl reload nginx
 
             ####################################
@@ -122,8 +124,8 @@ jobs:
             curl --fail http://localhost:5000/api
 
             echo ""
-            echo "Frontend:"
-            curl --fail http://localhost
+            echo "Frontend URL:"
+            curl -I "$APP_URL"
 
             echo ""
             echo "===================================="
