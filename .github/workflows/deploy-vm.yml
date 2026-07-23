@@ -24,78 +24,100 @@ jobs:
             echo "Starting DevAssist AI Deployment..."
             echo "===================================="
 
+            echo "Deployment Time:"
+            date
+
             ####################################
             # Go to Project
             ####################################
             cd ~/devassist-ai
 
+            echo ""
             echo "Updating repository..."
             git fetch origin
             git reset --hard origin/main
 
+            echo ""
+            echo "Current Commit:"
+            git rev-parse HEAD
+
             ####################################
             # Backend
             ####################################
-            echo "Installing backend dependencies..."
+            echo ""
+            echo "===================================="
+            echo "Backend Deployment"
+            echo "===================================="
 
             cd backend
 
-            npm install
-
-            echo "Generating Prisma Client..."
-            npx prisma generate
+            echo "Installing backend dependencies..."
+            npm ci
 
             echo "Building backend..."
             npm run build
 
-            echo "Restarting Backend..."
+            echo "Restarting backend..."
             pm2 restart devassist-backend --update-env
+
+            sleep 5
+
+            pm2 save
 
             ####################################
             # Frontend
             ####################################
-            echo "Installing frontend dependencies..."
+            echo ""
+            echo "===================================="
+            echo "Frontend Deployment"
+            echo "===================================="
 
             cd ../frontend
 
-            npm install
+            echo "Installing frontend dependencies..."
+            npm ci
 
             echo "Building frontend..."
             npm run build
 
-            ####################################
-            # Deploy React Build
-            ####################################
             echo "Deploying frontend..."
-
             sudo rm -rf /var/www/html/*
             sudo cp -r dist/* /var/www/html/
 
             ####################################
-            # Reload Nginx
+            # Nginx
             ####################################
-            echo "Checking Nginx configuration..."
+            echo ""
+            echo "===================================="
+            echo "Reloading Nginx"
+            echo "===================================="
 
             sudo nginx -t
-
-            echo "Reloading Nginx..."
-
             sudo systemctl reload nginx
 
             ####################################
             # Verification
             ####################################
             echo ""
-            echo "========== PM2 =========="
+            echo "===================================="
+            echo "Verification"
+            echo "===================================="
+
+            echo ""
+            echo "PM2 Status"
             pm2 status
 
             echo ""
-            echo "========== Nginx =========="
+            echo "Nginx Status"
             systemctl is-active nginx
 
             echo ""
-            echo "========== API =========="
-            curl http://localhost/api
+            echo "Backend API"
+            curl --fail http://localhost:5000/api
+
+            echo ""
+            echo "Frontend"
+            curl --fail http://localhost
 
             echo ""
             echo "===================================="
