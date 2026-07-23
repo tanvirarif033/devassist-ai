@@ -25,7 +25,7 @@ jobs:
             echo "===================================="
 
             ####################################
-            # Go to project
+            # Go to Project
             ####################################
             cd ~/devassist-ai
 
@@ -37,6 +37,7 @@ jobs:
             # Backend
             ####################################
             echo "Installing backend dependencies..."
+
             cd backend
 
             npm install
@@ -44,19 +45,17 @@ jobs:
             echo "Generating Prisma Client..."
             npx prisma generate
 
-            echo "Running database migrations..."
-            npx prisma migrate deploy
-
             echo "Building backend..."
             npm run build
 
-            echo "Restarting PM2..."
+            echo "Restarting Backend..."
             pm2 restart devassist-backend --update-env
 
             ####################################
             # Frontend
             ####################################
             echo "Installing frontend dependencies..."
+
             cd ../frontend
 
             npm install
@@ -87,24 +86,18 @@ jobs:
             # Verification
             ####################################
             echo ""
-            echo "========== Deployment Status =========="
-
+            echo "========== PM2 =========="
             pm2 status
 
             echo ""
-
+            echo "========== Nginx =========="
             systemctl is-active nginx
 
             echo ""
-
-            curl -I http://localhost
-
-            echo ""
-
+            echo "========== API =========="
             curl http://localhost/api
 
             echo ""
-
             echo "===================================="
             echo "Deployment Completed Successfully!"
             echo "===================================="
