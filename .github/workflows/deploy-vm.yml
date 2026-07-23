@@ -20,19 +20,13 @@ jobs:
           script: |
             set -e
 
-            APP_URL="${{ secrets.APP_URL }}"
-
             echo "===================================="
             echo "Starting DevAssist AI Deployment..."
             echo "===================================="
 
-            echo ""
             echo "Deployment Time:"
             date
 
-            ####################################
-            # Go to Project
-            ####################################
             cd ~/devassist-ai
 
             echo ""
@@ -44,88 +38,70 @@ jobs:
             echo "Current Commit:"
             git rev-parse HEAD
 
-            ####################################
+            ################################################
             # Backend
-            ####################################
+            ################################################
+
             echo ""
-            echo "===================================="
-            echo "Backend Deployment"
-            echo "===================================="
+            echo "========== Backend =========="
 
             cd backend
 
-            echo "Installing backend dependencies..."
             npm install
 
-            echo ""
-            echo "Building backend..."
             npm run build
 
-            echo ""
-            echo "Restarting backend..."
             pm2 restart devassist-backend --update-env
 
             sleep 5
 
             pm2 save
 
-            ####################################
+            ################################################
             # Frontend
-            ####################################
+            ################################################
+
             echo ""
-            echo "===================================="
-            echo "Frontend Deployment"
-            echo "===================================="
+            echo "========== Frontend =========="
 
             cd ../frontend
 
-            echo "Installing frontend dependencies..."
             npm install
 
-            echo ""
-            echo "Building frontend..."
             npm run build
-
-            echo ""
-            echo "Deploying frontend..."
 
             sudo rm -rf /var/www/html/*
             sudo cp -r dist/* /var/www/html/
 
-            ####################################
+            ################################################
             # Nginx
-            ####################################
+            ################################################
+
             echo ""
-            echo "===================================="
-            echo "Reloading Nginx"
-            echo "===================================="
+            echo "========== Nginx =========="
 
             sudo nginx -t
             sudo systemctl reload nginx
 
-            ####################################
+            ################################################
             # Verification
-            ####################################
-            echo ""
-            echo "===================================="
-            echo "Verification"
-            echo "===================================="
+            ################################################
 
             echo ""
-            echo "PM2 Status:"
+            echo "========== PM2 =========="
             pm2 status
 
             echo ""
-            echo "Nginx Status:"
+            echo "========== Nginx =========="
             systemctl is-active nginx
 
             echo ""
-            echo "Backend API:"
+            echo "========== Backend =========="
             curl --fail http://localhost:5000/api
 
             echo ""
-            echo "Frontend URL:"
-            curl -I "$APP_URL"
+            echo "========== Frontend =========="
+            curl --fail -I https://devassist-ai.duckdns.org
 
             echo ""
             echo "===================================="
