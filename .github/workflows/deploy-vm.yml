@@ -33,7 +33,7 @@ jobs:
             cd ~/devassist-ai
 
             echo ""
-            echo "Updating repository..."
+            echo "Updating Repository..."
             git fetch origin
             git reset --hard origin/main
 
@@ -52,7 +52,7 @@ jobs:
             cd backend
 
             echo "Installing backend dependencies..."
-            npm ci
+            npm install
 
             echo "Building backend..."
             npm run build
@@ -75,24 +75,30 @@ jobs:
             cd ../frontend
 
             echo "Installing frontend dependencies..."
-            npm ci
+            npm install
 
             echo "Building frontend..."
             npm run build
 
+            ####################################
+            # Deploy Frontend
+            ####################################
+            echo ""
             echo "Deploying frontend..."
+
             sudo rm -rf /var/www/html/*
             sudo cp -r dist/* /var/www/html/
 
             ####################################
-            # Nginx
+            # Reload Nginx
             ####################################
             echo ""
-            echo "===================================="
-            echo "Reloading Nginx"
-            echo "===================================="
+            echo "Checking Nginx Configuration..."
 
             sudo nginx -t
+
+            echo "Reloading Nginx..."
+
             sudo systemctl reload nginx
 
             ####################################
@@ -104,19 +110,19 @@ jobs:
             echo "===================================="
 
             echo ""
-            echo "PM2 Status"
+            echo "PM2 Status:"
             pm2 status
 
             echo ""
-            echo "Nginx Status"
+            echo "Nginx Status:"
             systemctl is-active nginx
 
             echo ""
-            echo "Backend API"
+            echo "Backend API:"
             curl --fail http://localhost:5000/api
 
             echo ""
-            echo "Frontend"
+            echo "Frontend:"
             curl --fail http://localhost
 
             echo ""
